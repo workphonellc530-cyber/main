@@ -59,7 +59,7 @@ export async function startCheckoutAction(): Promise<BillingActionState> {
 }
 
 export async function openCustomerPortalAction(): Promise<BillingActionState> {
-  const { org, plan } = await requireUserContext();
+  const { plan } = await requireUserContext();
   if (!plan?.stripeCustomerId) {
     return { ok: false, error: "No Stripe customer found for this org." };
   }
@@ -78,6 +78,8 @@ export async function startCheckoutFormAction(
   _prevState: BillingActionState,
   _formData: FormData,
 ): Promise<BillingActionState> {
+  void _prevState;
+  void _formData;
   return startCheckoutAction();
 }
 
@@ -85,6 +87,8 @@ export async function openCustomerPortalFormAction(
   _prevState: BillingActionState,
   _formData: FormData,
 ): Promise<BillingActionState> {
+  void _prevState;
+  void _formData;
   return openCustomerPortalAction();
 }
 

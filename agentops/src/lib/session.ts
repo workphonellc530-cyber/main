@@ -24,6 +24,7 @@ export async function getSession() {
   // Next.js 16 types make `cookies()` context-dependent (mutable in actions/handlers,
   // read-only in server components). For sessions we only mutate inside actions.
   // `iron-session` supports Next cookies stores at runtime; we loosen the type here.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return getIronSession<SessionData>(cookieStore as any, sessionOptions);
 }
 

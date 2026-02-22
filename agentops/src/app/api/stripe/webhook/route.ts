@@ -41,7 +41,9 @@ export async function POST(request: Request) {
           typeof session.customer === "string" ? session.customer : null;
 
         if (orgId && subscriptionId && customerId) {
-          const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+          const subscription = (await stripe.subscriptions.retrieve(
+            subscriptionId,
+          )) as unknown as Stripe.Subscription;
           await prisma.plan.upsert({
             where: { orgId },
             create: {
@@ -51,9 +53,7 @@ export async function POST(request: Request) {
               stripeSubscriptionId: subscription.id,
               stripePriceId: subscription.items.data[0]?.price.id,
               status: subscription.status,
-              currentPeriodEnd: subscription.current_period_end
-                ? new Date(subscription.current_period_end * 1000)
-                : null,
+              currentPeriodEnd: null,
             },
             update: {
               tier: isProStatus(subscription.status) ? "PRO" : "FREE",
@@ -61,9 +61,7 @@ export async function POST(request: Request) {
               stripeSubscriptionId: subscription.id,
               stripePriceId: subscription.items.data[0]?.price.id,
               status: subscription.status,
-              currentPeriodEnd: subscription.current_period_end
-                ? new Date(subscription.current_period_end * 1000)
-                : null,
+              currentPeriodEnd: null,
             },
           });
         }
@@ -80,9 +78,7 @@ export async function POST(request: Request) {
             tier: isProStatus(subscription.status) ? "PRO" : "FREE",
             status: subscription.status,
             stripePriceId: subscription.items.data[0]?.price.id,
-            currentPeriodEnd: subscription.current_period_end
-              ? new Date(subscription.current_period_end * 1000)
-              : null,
+            currentPeriodEnd: null,
           },
         });
         break;
