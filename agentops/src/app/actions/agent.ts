@@ -22,7 +22,20 @@ export async function runWorkflowAction(
   _prevState: RunActionState,
   formData: FormData,
 ): Promise<RunActionState> {
-  const { user, org } = await requireUserContext();
+  const { user, org, plan } = await requireUserContext();
+
+  if (plan?.tier !== "PRO") {
+    const successfulRuns = await prisma.agentRun.count({
+      where: { orgId: org.id, status: "SUCCESS" },
+    });
+    if (successfulRuns >= 10) {
+      return {
+        ok: false,
+        error:
+          "Free plan limit reached (10 successful runs). Upgrade in Billing to keep running playbooks.",
+      };
+    }
+  }
 
   const workflowIdResult = workflowIdSchema.safeParse(formData.get("workflow"));
   if (!workflowIdResult.success) return { ok: false, error: "Pick a workflow." };
