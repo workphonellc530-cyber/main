@@ -6,6 +6,7 @@ import { prisma } from "@/lib/db";
 import { requireUserContext } from "@/lib/current";
 import { generateText } from "@/lib/llm";
 import { getWorkflow, type WorkflowId } from "@/lib/workflows";
+import type { Prisma } from "@prisma/client";
 
 export type RunActionState =
   | { ok: true; runId: string; output: string }
@@ -52,7 +53,7 @@ export async function runWorkflowAction(
       orgId: org.id,
       userId: user.id,
       workflow: wf.id,
-      input: inputResult.data,
+      input: inputResult.data as Prisma.InputJsonValue,
       output: "",
       status: null,
       startedAt,

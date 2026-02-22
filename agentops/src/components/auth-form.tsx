@@ -16,10 +16,10 @@ export function AuthForm({
     formData: FormData,
   ) => Promise<AuthActionState>;
 }) {
-  const [state, formAction, isPending] = React.useActionState<AuthActionState>(
-    action,
-    { ok: true },
-  );
+  const [state, formAction, isPending] = React.useActionState<
+    AuthActionState,
+    FormData
+  >(action, { ok: true });
 
   return (
     <form action={formAction} className="grid gap-4">

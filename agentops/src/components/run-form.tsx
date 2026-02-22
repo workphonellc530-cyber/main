@@ -22,10 +22,10 @@ export function RunForm({
     JSON.stringify(workflowCatalog[0]!.exampleInput, null, 2),
   );
 
-  const [state, formAction, isPending] = React.useActionState<RunActionState>(
-    action,
-    { ok: false, error: "" },
-  );
+  const [state, formAction, isPending] = React.useActionState<
+    RunActionState,
+    FormData
+  >(action, { ok: false, error: "" });
 
   const currentMeta = workflowCatalog.find((w) => w.id === workflow)!;
 

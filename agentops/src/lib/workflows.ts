@@ -9,7 +9,7 @@ export type WorkflowDefinition = {
   inputSchema: z.ZodTypeAny;
   exampleInput: unknown;
   system: string;
-  buildPrompt: (input: any) => string;
+  buildPrompt: (input: unknown) => string;
 };
 
 const leadQualifierSchema = z.object({
@@ -83,15 +83,18 @@ export const workflows: WorkflowDefinition[] = [
     system:
       "You are a world-class B2B SDR and revenue operator. Your goal is to qualify fast, protect time, and move the lead to a scheduled call. Be ethical and do not fabricate facts.",
     buildPrompt: (input) => {
-      const q = (input.qualification_questions || []).map((x: string) => `- ${x}`).join("\n");
+      const i = input as z.infer<typeof leadQualifierSchema>;
+      const q = (i.qualification_questions || [])
+        .map((x) => `- ${x}`)
+        .join("\n");
       return [
         "INBOUND LEAD MESSAGE:",
-        input.lead_message,
+        i.lead_message,
         "",
         "YOUR OFFER:",
-        input.your_offer,
+        i.your_offer,
         "",
-        input.calendar_link ? `CALENDAR LINK: ${input.calendar_link}\n` : "",
+        i.calendar_link ? `CALENDAR LINK: ${i.calendar_link}\n` : "",
         "REQUIREMENTS:",
         "- Output in Markdown.",
         "- First: a 5-bullet qualification summary (what they want, current state, likely ICP, risks, missing info).",
@@ -102,7 +105,7 @@ export const workflows: WorkflowDefinition[] = [
         q,
         "",
         "STYLE:",
-        `- Tone: ${input.tone || "friendly"}`,
+        `- Tone: ${i.tone || "friendly"}`,
         "- Be specific, avoid fluff, use short sentences.",
       ].join("\n");
     },
@@ -122,16 +125,19 @@ export const workflows: WorkflowDefinition[] = [
     system:
       "You are a senior customer support agent. You are careful with customer data. You follow policy and avoid promising refunds/replacements unless policy allows it. Do not invent tracking updates.",
     buildPrompt: (input) => {
-      const policies = (input.policy_snippets || []).map((x: string) => `- ${x}`).join("\n");
+      const i = input as z.infer<typeof supportSchema>;
+      const policies = (i.policy_snippets || [])
+        .map((x) => `- ${x}`)
+        .join("\n");
       return [
         "CUSTOMER MESSAGE:",
-        input.customer_message,
+        i.customer_message,
         "",
         "ORDER CONTEXT (IF ANY):",
-        JSON.stringify(input.order_context || {}, null, 2),
+        JSON.stringify(i.order_context || {}, null, 2),
         "",
         "BRAND VOICE:",
-        input.brand_voice,
+        i.brand_voice,
         "",
         "POLICIES:",
         policies,
@@ -164,18 +170,19 @@ export const workflows: WorkflowDefinition[] = [
     system:
       "You are a sales engineer writing crisp proposals. You avoid legal claims and guarantee language. You are clear about assumptions, risks, and acceptance criteria.",
     buildPrompt: (input) => {
-      const assumptions = (input.assumptions || []).map((x: string) => `- ${x}`).join("\n");
+      const i = input as z.infer<typeof proposalSchema>;
+      const assumptions = (i.assumptions || []).map((x) => `- ${x}`).join("\n");
       return [
-        `CLIENT: ${input.client_name}`,
+        `CLIENT: ${i.client_name}`,
         "",
         "PROJECT BRIEF:",
-        input.project_brief,
+        i.project_brief,
         "",
         "DESIRED OUTCOME:",
-        input.desired_outcome,
+        i.desired_outcome,
         "",
-        `TIMELINE: ${input.timeline}`,
-        `BUDGET RANGE: ${input.budget_range}`,
+        `TIMELINE: ${i.timeline}`,
+        `BUDGET RANGE: ${i.budget_range}`,
         "",
         "ASSUMPTIONS:",
         assumptions,

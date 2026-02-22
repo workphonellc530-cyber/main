@@ -20,6 +20,10 @@ const sessionOptions: SessionOptions = {
 };
 
 export async function getSession() {
-  return getIronSession<SessionData>(cookies(), sessionOptions);
+  const cookieStore = await cookies();
+  // Next.js 16 types make `cookies()` context-dependent (mutable in actions/handlers,
+  // read-only in server components). For sessions we only mutate inside actions.
+  // `iron-session` supports Next cookies stores at runtime; we loosen the type here.
+  return getIronSession<SessionData>(cookieStore as any, sessionOptions);
 }
 

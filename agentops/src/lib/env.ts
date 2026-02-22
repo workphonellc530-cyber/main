@@ -3,11 +3,20 @@ export function getAppUrl() {
 }
 
 export function getSessionSecret() {
-  const secret =
-    process.env.SESSION_SECRET ||
-    "dev_insecure_change_me_dev_insecure_change_me_dev_insecure_change_me";
+  const isBuildPhase = process.env.NEXT_PHASE === "phase-production-build";
+  const fallback =
+    isBuildPhase
+      ? "build_placeholder_secret_build_placeholder_secret_build_placeholder_secret"
+      : "dev_insecure_change_me_dev_insecure_change_me_dev_insecure_change_me";
 
-  if (process.env.NODE_ENV === "production" && !process.env.SESSION_SECRET) {
+  const secret = process.env.SESSION_SECRET || fallback;
+
+  // Allow builds to succeed without runtime secrets; enforce at runtime.
+  if (
+    process.env.NODE_ENV === "production" &&
+    !process.env.SESSION_SECRET &&
+    !isBuildPhase
+  ) {
     throw new Error("Missing SESSION_SECRET in production environment.");
   }
 
