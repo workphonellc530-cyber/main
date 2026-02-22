@@ -36,9 +36,9 @@ If 2 deals come from warm referrals, outbound must close 9 deals.
 
 ## Daily KPI Cadence
 
-- Outreach/day: 143
-- Replies/day: 12
-- Meetings/day: 4
+- Outreach/day: 209
+- Replies/day: 15
+- Meetings/day: 5
 - Shows/day: 3
 - Closes/day: 1
 

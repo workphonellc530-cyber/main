@@ -23,11 +23,11 @@ You can change every assumption in `config/default_scenario.json`.
 ## Quick Start
 
 ```bash
-python main.py funnel --config config/default_scenario.json
-python main.py simulate --config config/default_scenario.json --runs 5000
-python main.py score-leads --lead-file data/sample_leads.csv --top 10
-python main.py generate-assets --lead-file data/sample_leads.csv --top 5 --output reports/outreach_assets.md
-python main.py build-plan --config config/default_scenario.json --output reports/14_day_plan.md
+python3 main.py funnel --config config/default_scenario.json
+python3 main.py simulate --config config/default_scenario.json --runs 5000
+python3 main.py score-leads --lead-file data/sample_leads.csv --top 10
+python3 main.py generate-assets --lead-file data/sample_leads.csv --top 5 --output reports/outreach_assets.md
+python3 main.py build-plan --config config/default_scenario.json --output reports/14_day_plan.md
 ```
 
 ## What This Project Produces
