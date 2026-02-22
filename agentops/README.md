@@ -1,36 +1,66 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+## AgentOps (app)
 
-## Getting Started
+This is the **AI-agent console** (Next.js App Router) with:
 
-First, run the development server:
+- **Auth + orgs**: signup/login, org membership, sessions
+- **Playbooks**: lead qualifier, support autoresponder, proposal writer
+- **Audit trail**: every run stored (input/output/status)
+- **Stripe**: checkout + customer portal + webhook sync
+- **Plan gating**: Free tier capped at **10 successful runs**
+
+### Local development
 
 ```bash
+npm install
+npx prisma migrate dev
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Then open `http://localhost:3000`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Environment variables
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Create `.env` (example values):
 
-## Learn More
+```bash
+# Database (SQLite for local dev)
+DATABASE_URL="file:./dev.db"
 
-To learn more about Next.js, take a look at the following resources:
+# Sessions (required in production; 32+ chars)
+SESSION_SECRET="change_me_change_me_change_me_change_me_change_me"
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+# App URL (used for Stripe redirects)
+APP_URL="http://localhost:3000"
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+# LLM (required to run playbooks)
+OPENAI_API_KEY="..."
+OPENAI_MODEL="gpt-4o-mini"
 
-## Deploy on Vercel
+# Stripe (optional, required to charge)
+STRIPE_SECRET_KEY="sk_test_..."
+STRIPE_PRICE_ID="price_..."
+STRIPE_WEBHOOK_SECRET="whsec_..."
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Stripe setup
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **Create a recurring Price** in Stripe and set `STRIPE_PRICE_ID`
+- **Add a webhook endpoint** to:
+  - `POST /api/stripe/webhook`
+- **Listen to events**:
+  - `checkout.session.completed`
+  - `customer.subscription.created`
+  - `customer.subscription.updated`
+  - `customer.subscription.deleted`
+
+### Notes for production
+
+- SQLite is great for a single-node deployment; for multi-instance SaaS, move to Postgres.
+- Always set `SESSION_SECRET` in production.
+
+### Docker
+
+```bash
+docker compose -f compose.yml up --build
+```
+
