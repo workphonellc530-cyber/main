@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import Optional, Any
 from datetime import datetime
 from uuid import UUID
@@ -35,6 +35,8 @@ class AgentUpdate(BaseModel):
 
 
 class AgentResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: UUID
     owner_id: UUID
     name: str
@@ -54,9 +56,6 @@ class AgentResponse(BaseModel):
     resolution_rate: float
     created_at: datetime
     updated_at: datetime
-
-    class Config:
-        from_attributes = True
 
 
 class AgentListResponse(BaseModel):
@@ -80,6 +79,8 @@ class ChatResponse(BaseModel):
 
 
 class ConversationResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: UUID
     agent_id: UUID
     status: str
@@ -89,6 +90,3 @@ class ConversationResponse(BaseModel):
     resolved: bool
     started_at: datetime
     ended_at: Optional[datetime]
-
-    class Config:
-        from_attributes = True
