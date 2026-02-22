@@ -1,0 +1,16 @@
+{
+  "target_profit": 200000,
+  "days": 14,
+  "setup_fee": 25000,
+  "upfront_collection_ratio": "80%",
+  "monthly_retainer": 3000,
+  "outreach_per_day": 260,
+  "reply_rate": "7%",
+  "meeting_book_rate": "28%",
+  "show_rate": "72%",
+  "close_rate": "22%",
+  "referral_deals": 2,
+  "ad_budget": 3000,
+  "contractor_cost": 12000,
+  "software_cost": 1500
+}
