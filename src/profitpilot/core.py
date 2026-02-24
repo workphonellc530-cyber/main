@@ -27,9 +27,13 @@ def _safe_percent(value: Any, default: float = 0.0) -> float:
     if text.endswith("%"):
         return _safe_float(text[:-1], default) / 100.0
     numeric = _safe_float(text, default)
-    if numeric > 1:
+    if 1 < numeric <= 100:
         return numeric / 100.0
     return numeric
+
+
+def _clamp(value: float, low: float, high: float) -> float:
+    return max(low, min(high, value))
 
 
 def _currency(value: float) -> str:
@@ -97,6 +101,34 @@ class Scenario:
     def outreach_to_close_rate(self) -> float:
         return self.reply_rate * self.meeting_book_rate * self.show_rate * self.close_rate
 
+    def validate(self) -> None:
+        if self.days <= 0:
+            raise ValueError("days must be positive.")
+        if self.target_profit < 0:
+            raise ValueError("target_profit must be non-negative.")
+        if self.setup_fee <= 0:
+            raise ValueError("setup_fee must be positive.")
+        if not (0 < self.upfront_collection_ratio <= 1):
+            raise ValueError("upfront_collection_ratio must be in the range (0, 1].")
+        if self.monthly_retainer < 0:
+            raise ValueError("monthly_retainer must be non-negative.")
+        if self.outreach_per_day < 0:
+            raise ValueError("outreach_per_day must be non-negative.")
+        if self.referral_deals < 0:
+            raise ValueError("referral_deals must be non-negative.")
+        if self.ad_budget < 0 or self.contractor_cost < 0 or self.software_cost < 0:
+            raise ValueError("ad_budget, contractor_cost, and software_cost must be non-negative.")
+
+        rate_fields = {
+            "reply_rate": self.reply_rate,
+            "meeting_book_rate": self.meeting_book_rate,
+            "show_rate": self.show_rate,
+            "close_rate": self.close_rate,
+        }
+        for name, value in rate_fields.items():
+            if not (0 <= value <= 1):
+                raise ValueError(f"{name} must be in the range [0, 1].")
+
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "Scenario":
         return cls(
@@ -138,24 +170,39 @@ class Lead:
 
     @classmethod
     def from_row(cls, row: Dict[str, Any]) -> "Lead":
+        monthly_leads = max(_safe_float(row.get("monthly_leads"), 0.0), 0.0)
+        avg_ticket = max(_safe_float(row.get("avg_ticket"), 0.0), 0.0)
+        no_show_rate = _clamp(_safe_percent(row.get("no_show_rate"), 0.0), 0.0, 1.0)
+        speed_to_lead_minutes = max(_safe_float(row.get("speed_to_lead_minutes"), 0.0), 0.0)
+        google_reviews = max(_safe_float(row.get("google_reviews"), 0.0), 0.0)
+        website_quality = _clamp(_safe_float(row.get("website_quality"), 5.0), 0.0, 10.0)
+
         return cls(
             company=str(row.get("company", "")).strip(),
             niche=str(row.get("niche", "")).strip(),
             city=str(row.get("city", "")).strip(),
-            monthly_leads=_safe_float(row.get("monthly_leads"), 0.0),
-            avg_ticket=_safe_float(row.get("avg_ticket"), 0.0),
-            no_show_rate=_safe_percent(row.get("no_show_rate"), 0.0),
-            speed_to_lead_minutes=_safe_float(row.get("speed_to_lead_minutes"), 0.0),
-            google_reviews=_safe_float(row.get("google_reviews"), 0.0),
-            website_quality=_safe_float(row.get("website_quality"), 5.0),
+            monthly_leads=monthly_leads,
+            avg_ticket=avg_ticket,
+            no_show_rate=no_show_rate,
+            speed_to_lead_minutes=speed_to_lead_minutes,
+            google_reviews=google_reviews,
+            website_quality=website_quality,
         )
 
 
 def build_funnel(scenario: Scenario) -> Dict[str, Any]:
+    scenario.validate()
+
     if scenario.cash_collected_per_deal <= 0:
         raise ValueError("setup_fee * upfront_collection_ratio must be positive.")
-    if scenario.days <= 0:
-        raise ValueError("days must be positive.")
+    if scenario.reply_rate <= 0:
+        raise ValueError("reply_rate must be greater than 0 for funnel calculations.")
+    if scenario.meeting_book_rate <= 0:
+        raise ValueError("meeting_book_rate must be greater than 0 for funnel calculations.")
+    if scenario.show_rate <= 0:
+        raise ValueError("show_rate must be greater than 0 for funnel calculations.")
+    if scenario.close_rate <= 0:
+        raise ValueError("close_rate must be greater than 0 for funnel calculations.")
 
     required_deals = _ceil_div(scenario.target_profit + scenario.fixed_costs, scenario.cash_collected_per_deal)
     deals_from_referrals = min(max(scenario.referral_deals, 0), required_deals)
@@ -190,6 +237,7 @@ def build_funnel(scenario: Scenario) -> Dict[str, Any]:
 
 
 def simulate_profit_outcomes(scenario: Scenario, runs: int = 5_000, seed: int = 42) -> Dict[str, float]:
+    scenario.validate()
     if runs <= 0:
         raise ValueError("runs must be positive.")
 
@@ -229,8 +277,27 @@ def load_leads(path: str | Path) -> List[Lead]:
     leads: List[Lead] = []
     with Path(path).open("r", encoding="utf-8", newline="") as csv_file:
         reader = csv.DictReader(csv_file)
+        required_columns = {
+            "company",
+            "niche",
+            "city",
+            "monthly_leads",
+            "avg_ticket",
+            "no_show_rate",
+            "speed_to_lead_minutes",
+            "google_reviews",
+            "website_quality",
+        }
+        fieldnames = set(reader.fieldnames or [])
+        missing = sorted(required_columns - fieldnames)
+        if missing:
+            raise ValueError(f"Lead CSV is missing required columns: {', '.join(missing)}")
         for row in reader:
+            if not any(str(value).strip() for value in row.values() if value is not None):
+                continue
             leads.append(Lead.from_row(row))
+    if not leads:
+        raise ValueError("Lead CSV does not contain any rows.")
     return leads
 
 
@@ -270,7 +337,7 @@ def rank_leads(leads: Iterable[Lead]) -> List[Dict[str, Any]]:
                 "revenue_base": metrics["revenue_base"],
             }
         )
-    rankings.sort(key=lambda item: item["score"], reverse=True)
+    rankings.sort(key=lambda item: (-item["score"], item["lead"].company.lower()))
     return rankings
 
 
@@ -433,7 +500,12 @@ def format_lead_rankings(rankings: Sequence[Dict[str, Any]], top: int = 10) -> s
         "Rank | Company | Niche | Score | Recoverable Monthly Revenue",
         "---- | ------- | ----- | ----- | ---------------------------",
     ]
-    for idx, item in enumerate(rankings[: max(0, top)], start=1):
+    selected = rankings[: max(0, top)]
+    if not selected:
+        lines.append("No ranked leads to display.")
+        return "\n".join(lines)
+
+    for idx, item in enumerate(selected, start=1):
         lead: Lead = item["lead"]
         lines.append(
             f"{idx} | {lead.company} | {lead.niche} | {item['score']:.0f} | "

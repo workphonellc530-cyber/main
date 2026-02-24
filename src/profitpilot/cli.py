@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import argparse
+import json
+import sys
 from pathlib import Path
 
 from .core import (
@@ -122,5 +124,9 @@ def run(args: argparse.Namespace) -> int:
 
 def main() -> int:
     parser = build_parser()
-    args = parser.parse_args()
-    return run(args)
+    try:
+        args = parser.parse_args()
+        return run(args)
+    except (FileNotFoundError, json.JSONDecodeError, ValueError) as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        return 2

@@ -1,4 +1,5 @@
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -8,7 +9,7 @@ SRC = ROOT / "src"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
-from profitpilot.core import Lead, Scenario, build_funnel, rank_leads, simulate_profit_outcomes
+from profitpilot.core import Lead, Scenario, build_funnel, load_leads, rank_leads, simulate_profit_outcomes
 
 
 class ProfitPilotTests(unittest.TestCase):
@@ -82,6 +83,44 @@ class ProfitPilotTests(unittest.TestCase):
         rankings = rank_leads([low, high])
         self.assertEqual(rankings[0]["lead"].company, "High Co")
         self.assertEqual(rankings[1]["lead"].company, "Low Co")
+
+    def test_build_funnel_rejects_zero_close_rate(self) -> None:
+        scenario = Scenario(close_rate=0.0)
+        with self.assertRaisesRegex(ValueError, "close_rate must be greater than 0"):
+            build_funnel(scenario)
+
+    def test_simulation_rejects_negative_outreach(self) -> None:
+        scenario = Scenario(outreach_per_day=-1)
+        with self.assertRaisesRegex(ValueError, "outreach_per_day must be non-negative"):
+            simulate_profit_outcomes(scenario, runs=100, seed=1)
+
+    def test_load_leads_missing_required_columns_raises(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            csv_path = Path(tmp_dir) / "bad_leads.csv"
+            csv_path.write_text("company,niche\nFoo,Dental\n", encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "missing required columns"):
+                load_leads(csv_path)
+
+    def test_lead_row_values_are_normalized(self) -> None:
+        lead = Lead.from_row(
+            {
+                "company": "Normalize Co",
+                "niche": "Dental",
+                "city": "Austin",
+                "monthly_leads": -5,
+                "avg_ticket": -100,
+                "no_show_rate": "140%",
+                "speed_to_lead_minutes": -2,
+                "google_reviews": -30,
+                "website_quality": 99,
+            }
+        )
+        self.assertEqual(lead.monthly_leads, 0.0)
+        self.assertEqual(lead.avg_ticket, 0.0)
+        self.assertEqual(lead.no_show_rate, 1.0)
+        self.assertEqual(lead.speed_to_lead_minutes, 0.0)
+        self.assertEqual(lead.google_reviews, 0.0)
+        self.assertEqual(lead.website_quality, 10.0)
 
 
 if __name__ == "__main__":
